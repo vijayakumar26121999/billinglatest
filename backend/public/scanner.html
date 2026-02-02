@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Barcode Scanner</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/html5-qrcode.min.js" type="text/javascript"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+        h2 { margin-bottom: 20px; }
+        #reader {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border: 2px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4ade80;
+            min-height: 1.5em;
+        }
+        .status {
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+        .connected { color: #4ade80; }
+        .disconnected { color: #ef4444; }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+    <h2>📱 Mobile Scanner</h2>
+    <div id="connection-status" class="status disconnected">Disconnected</div>
+
+    <div id="reader"></div>
+    <div id="result">Waiting for scan...</div>
+
+    <!-- Beep Sound -->
+    <audio id="beep-sound" src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU" preload="auto"></audio>
+
+    <script>
+        const socket = io();
+        const statusDiv = document.getElementById('connection-status');
+        const resultDiv = document.getElementById('result');
+        let isScanning = true;
+
+        socket.on('connect', () => {
+            statusDiv.textContent = '🟢 Connected to POS';
+            statusDiv.className = 'status connected';
+        });
+
+        socket.on('disconnect', () => {
+            statusDiv.textContent = '🔴 Disconnected';
+            statusDiv.className = 'status disconnected';
+        });
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (!isScanning) return;
+            
+            // Play Beep (Optional/Simple)
+            // document.getElementById('beep-sound').play().catch(e => {});
+
+            resultDiv.textContent = `Scanned: ${decodedText}`;
+            
+            // Send to Backend
+            socket.emit('scan-item', { barcode: decodedText });
+
+            // Prevent rapid duplicate scans
+            isScanning = false;
+            setTimeout(() => { isScanning = true; resultDiv.textContent = "Ready to scan..."; }, 2000);
+        }
+
+        function onScanFailure(error) {
+            // handle scan failure, usually better to ignore and keep scanning.
+            // console.warn(`Code scan error = ${error}`);
+        }
+
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            /* verbose= */ false
+        );
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+</body>
+</html>
