@@ -12,7 +12,7 @@ const os = require('os');
 const pairing = require('./pairing');
 
 const LICENSE_SECRET = "antigravity_license_secret_key_2026";
-import path from "path";
+// import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
